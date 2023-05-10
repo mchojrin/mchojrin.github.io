@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Framework won't allow that</title>
+</head>
+<body>
+<p>In a recent engagement with a team we faced an interesting challenge. After going through some workshops on good
+    design principles (Mostly about <a href="https://en.wikipedia.org/wiki/SOLID">SOLID principles</a>, we reached a
+    consensus around the benefits of using <a href="https://en.wikipedia.org/wiki/Dependency_injection">dependency
+        injection</a> and wrapping external dependencies with proprietary code.</p>
+<p>Those were the good news. But then, a kind of reality check came to us.</p>
+<p>The User Story we were working on in a <a href="https://www.agilealliance.org/glossary/mob-programming/">mob</a>
+    fashion was supposed to interact with a <a href="https://kafka.apache.org/">Kafka server</a>, so we put together a
+    class called KafkaConnectorService, which looked somewhat like this:</p>
+<pre>
+    <code>
+        export class KafkaConnectorService {
+        private readonly _logger = new Logger(KafkaConnectorService.name);
+        private kafkaProducer: Producer;
+        public readonly kafkaClient = this._kafkaService.createKafkaClient();
+        private _topic: string;
+
+        constructor(private readonly _kafkaService: KafkaService, topic: string) {
+            this._topic = topic;
+            this.resolveProducer();
+        }
+
+        public async sendMessage(msg: string): Promise<void> {
+        if (this.getKafkaTopicSC()) {
+            this.kafkaProducer.send({
+                topic: this.getKafkaTopicSC(),
+                messages: [{ value: msg }],
+            });
+        }
+    }
+
+    private getKafkaTopicSC() {
+        return process.env.KAFKA_TOPIC_SC;
+    }
+    </code>
+</pre>
+</body>
+</html>
