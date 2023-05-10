@@ -13,33 +13,77 @@
 <p>Those were the good news. But then, a kind of reality check came to us.</p>
 <p>The User Story we were working on in a <a href="https://www.agilealliance.org/glossary/mob-programming/">mob</a>
     fashion was supposed to interact with a <a href="https://kafka.apache.org/">Kafka server</a>, so we put together a
-    class called KafkaConnectorService, which looked somewhat like this:</p>
+    class called <code>KafkaConnectorService</code>, which looked somewhat like this:</p>
 <pre>
     <code>
         export class KafkaConnectorService {
-        private readonly _logger = new Logger(KafkaConnectorService.name);
-        private kafkaProducer: Producer;
-        public readonly kafkaClient = this._kafkaService.createKafkaClient();
-        private _topic: string;
+            private kafkaProducer: Producer;
+            public readonly kafkaClient = this._kafkaService.createKafkaClient();
 
-        constructor(private readonly _kafkaService: KafkaService, topic: string) {
-            this._topic = topic;
-            this.resolveProducer();
+            constructor(private readonly _kafkaService: KafkaService) {
+                this.resolveProducer();
+            }
+
+            public async sendMessage(msg: string): Promise&lt;void&gt; {
+                if (this.getKafkaTopicSC()) {
+                    this.kafkaProducer.send({
+                        topic: this.getKafkaTopicSC(),
+                        messages: [{ value: msg }],
+                    });
+                }
+            }
+
+            private getKafkaTopic() {
+                return process.env.KAFKA_TOPIC;
+            }
         }
-
-        public async sendMessage(msg: string): Promise&lt;void&gt; {
-        if (this.getKafkaTopicSC()) {
-            this.kafkaProducer.send({
-                topic: this.getKafkaTopicSC(),
-                messages: [{ value: msg }],
-            });
-        }
-    }
-
-    private getKafkaTopicSC() {
-        return process.env.KAFKA_TOPIC_SC;
-    }
     </code>
 </pre>
+<p>In case you're not familiar with the syntax, this code is written using <a href="https://www.typescriptlang.org/">TypeScript</a> but the principles discussed here apply to any other.</p>
+<p>You've probably already noticed but, in case you didn't, let me draw your attention to the line <code>return process.env.KAFKA_TOPIC;</code>. If we were to leave it like that we would effectively be creating an unneeded coupling between the application and the environment.</p>
+<p>What if, down the road, we needed to switch the configuration storage mechanism to something else? Too speculative for you? Fair enough, let's look at it from a more <i>pragmatic</i> point of view: how do we write tests for this code?</p>
+<p>If we were to keep this structure, the only way to do some testing would be to save the environment before each test and restore it afterward. Not too complex but again, that wouldn't complain with testing good practices (Tests should be independent of each other).</p>
+<p>A more interesting solution is, precisely to use dependency injection, like this:</p>
+<pre>
+    <code>
+        export class KafkaConnectorService {
+            private kafkaProducer: Producer;
+            public readonly kafkaClient = this._kafkaService.createKafkaClient();
+            private topic: string;
+
+            constructor(private readonly _kafkaService: KafkaService, topic: string) {
+                this._topic = topic;
+                this.resolveProducer();
+            }
+
+            public async sendMessage(msg: string): Promise&lt;void&gt; {
+                if (this.getKafkaTopicSC()) {
+                    this.kafkaProducer.send({
+                        topic: this.getKafkaTopicSC(),
+                        messages: [{ value: msg }],
+                    });
+                }
+            }
+
+            private getKafkaTopic() {
+                return this.topic;
+            }
+        }
+    </code>
+</pre>
+<h2>What is the problem?</h2>
+<p>The problem the team faced (expressed is probably a more accurate description) was the fact that <a href="https://nestjs.com/">NestJs</a>, the framework being used in the project, was <i>magically</i> creating the instance of the service so there was no way to inject this dependency from the outside.</p>
+<p>When I first heard the teams arguments I was skeptical, given my experience using other frameworks in other languages (<a href="https://symfony.com/">Symfony</a> in this case) I knew this was possible.</p>
+<p>Luckily, after a little digging, we realized this assumption was not true and the framework did allow such initialization so we were able to complete the expected tests and functionality without breaking good design rules.</p>
+<h2>The lesson</h2>
+<p>Probably many things can be taken from this experience but I want to focus on two I find particularly important:</p>
+<ol>
+    <li><strong>The framework is your tool</strong>. By this I mean, the framework, as any other tool, should work for you (a.k.a. make your life easier), not the other way around. While this may seem obvious, it's sometimes forgotten in the heat of the battle.</li>
+    <li><strong>If the framework doesn't allow you to do something it should, you probably don't know the framework well enough</strong>. It's very common for developers to believe that since they have extensive experience using a tool they know all there is to know about it. If you find this to be your case, my advice is to give yourself the benefit of the doubt and do a little more research. Most modern and mature frameworks are really powerful tools, created by very smart people who face (or have faced) similar issues as your own so chances are somebody already came up with the solution.</li>
+    <li><strong>If the framework forces you to ignore best practices change the framework</strong>. Ok, I realize this one can, many times, be out of the real possibilities of a team/project but should definitely be considered. A tool that forces you to produce mediocre code is not one you want to use (See the first point).</li>
+</ol>
+<br/>
+<p>I hope this article gave you a new perspective on your particular situation.</p>
+<p>Cheers,</p>
 </body>
 </html>
