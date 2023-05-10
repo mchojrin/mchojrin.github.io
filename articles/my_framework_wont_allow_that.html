@@ -5,6 +5,7 @@
     <title>My Framework won't allow that</title>
 </head>
 <body>
+<h1>My Framework won't allow that</h1>
 <p>In a recent engagement with a team we faced an interesting challenge. After going through some workshops on good
     design principles (Mostly about <a href="https://en.wikipedia.org/wiki/SOLID">SOLID principles</a>, we reached a
     consensus around the benefits of using <a href="https://en.wikipedia.org/wiki/Dependency_injection">dependency
@@ -26,7 +27,7 @@
             this.resolveProducer();
         }
 
-        public async sendMessage(msg: string): Promise<void> {
+        public async sendMessage(msg: string): Promise&lt;void&gt; {
         if (this.getKafkaTopicSC()) {
             this.kafkaProducer.send({
                 topic: this.getKafkaTopicSC(),
